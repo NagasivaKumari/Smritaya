@@ -73,6 +73,30 @@ def _init() -> None:
 _init()
 
 
+def _seed_demo() -> None:
+    """Fresh instances have no users — seed a guaranteed login so a fresh
+    Render deploy (ephemeral storage) is never a lockout."""
+    email = os.environ.get("SMRITAYA_SEED_EMAIL", "").strip().lower()
+    password = os.environ.get("SMRITAYA_SEED_PASSWORD", "")
+    if not email or not password:
+        return
+    with _conn() as c:
+        n = c.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+    if n:
+        return
+    try:
+        signup(email, password)
+    except AuthError:
+        return
+    omi = os.environ.get("SMRITAYA_SEED_OMI", "").strip()
+    row = _find_user(email)
+    if row and omi:
+        set_omi_uid(row["id"], omi)
+
+
+_seed_demo()
+
+
 # ---------------------------------------------------------------- hashing
 
 def _hash_password(password: str, salt: str) -> str:

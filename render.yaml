@@ -15,3 +15,9 @@ services:
         sync: false
       - key: LYZR_DRAFTER_AGENT_ID
         sync: false
+      - key: SMRITAYA_SEED_EMAIL
+        sync: false
+      - key: SMRITAYA_SEED_PASSWORD
+        sync: false
+      - key: SMRITAYA_SEED_OMI
+        sync: false
