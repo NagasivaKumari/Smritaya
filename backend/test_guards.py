@@ -108,4 +108,6 @@ with app._buf_lock:
     app._timers.pop("s1", None)
 
 print("ok omi-realtime: cumulative replace, no duplicate stack")
+assert app._dedupe_stream("Ramesh Ramesh Yadav Yadav 8 8000") == "Ramesh Yadav 8 8000"
+print("ok omi-dedupe: interim repeated fragments collapsed")
 

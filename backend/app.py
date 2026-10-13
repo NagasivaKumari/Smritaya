@@ -197,6 +197,19 @@ def _process_transcript(uid: str, text: str, source: str, speaker: str | None) -
     return len(deeds)
 
 
+def _dedupe_stream(text: str) -> str:
+    """Omi's interim real-time transcript grows by repeating word fragments
+    ('Ramesh Yadav Ramesh Yadav … 8 … 8000'). Collapse adjacent duplicates for
+    the provisional text; the clean conversation webhook stays untouched."""
+    words = text.split()
+    out = []
+    for w in words:
+        if out and out[-1].lower() == w.lower():
+            continue
+        out.append(w)
+    return " ".join(out)
+
+
 def _conversation_text(payload: Any) -> tuple[str, str | None]:
     """Pull the spoken words out of any shape Omi's memory webhook sends."""
     transcript, speaker = "", None
@@ -231,6 +244,12 @@ def on_conversation(tasks: BackgroundTasks, uid: str = Query(DEMO_UID), token: s
     if not _omi_ok(token):
         return JSONResponse(status_code=403, content={"error": "forbidden"})
     uid = _ledger_uid(uid)
+    # The completed-conversation text is the clean, canonical record: drop any
+    # provisional realtime-flushed deed for this person from the last few minutes
+    # so 'I spoke once' yields exactly one deed, not two.
+    drafts = memory.strike_realtime_drafts(uid)
+    if drafts:
+        print(f"[omi] removed {drafts} provisional realtime draft deed(s) before storing the conversation deed")
     transcript, speaker = _conversation_text(payload)
     print(f"[omi] conversation uid={uid!r} keys={list(payload) if isinstance(payload, dict) else type(payload).__name__} len={len(transcript)} text={transcript[:160]!r}")
 
@@ -266,6 +285,7 @@ def on_realtime(tasks: BackgroundTasks, uid: str = Query(DEMO_UID), session_id: 
         transcript = payload
 
     transcript = transcript.strip()
+    transcript = _dedupe_stream(transcript)
     if not transcript:
         return {"status": "ok"}
 

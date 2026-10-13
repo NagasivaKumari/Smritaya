@@ -251,6 +251,35 @@ def remap_uid(old_uid: str, new_uid: str) -> int:
     return len(ids)
 
 
+def strike_realtime_drafts(uid: str, window: int = 180) -> int:
+    """Delete provisional realtime-flushed deeds for a uid in the last `window`
+    seconds — called when the clean conversation webhook arrives."""
+    from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList, Range
+
+    qdrant = _client()
+    now = time.time()
+    try:
+        hits = qdrant.scroll(
+            COLLECTION,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(key="uid", match=MatchValue(value=uid)),
+                    FieldCondition(key="source", match=MatchValue(value="realtime")),
+                    FieldCondition(key="ts", range=Range(gte=now - window)),
+                ]
+            ),
+            limit=1000,
+            with_payload=False,
+        )[0]
+    except Exception:
+        return 0
+    ids = [p.id for p in hits]
+    if not ids:
+        return 0
+    qdrant.delete(COLLECTION, points_selector=PointIdsList(points=ids))
+    return len(ids)
+
+
 # -------------------------------------------------------------------- reads
 
 def _overdue(payload: dict) -> bool:
