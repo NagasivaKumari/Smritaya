@@ -20,7 +20,12 @@ export function uid() {
 async function call(path, options = {}) {
   const sep = path.includes('?') ? '&' : '?'
   const res = await fetch(`${API}${path}${sep}uid=${encodeURIComponent(uid())}`, {
-    headers: { 'Content-Type': 'application/json', ...(authToken() ? { Authorization: `Bearer ${authToken()}` } : {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      // ponytail: ngrok-free serves an interstitial to browser requests; this skips it
+      'ngrok-skip-browser-warning': 'true',
+      ...(authToken() ? { Authorization: `Bearer ${authToken()}` } : {}),
+    },
     ...options,
   })
   if (!res.ok) {
