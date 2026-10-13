@@ -15,10 +15,3 @@ services:
         sync: false
       - key: LYZR_DRAFTER_AGENT_ID
         sync: false
-      - key: QDRANT_PATH
-        value: /var/data/qdrant_data
-      - key: SMRITAYA_AUTH_DB
-        value: /var/data/auth.db
-    disk:
-      name: smritaya-data
-      mountPath: /var/data
