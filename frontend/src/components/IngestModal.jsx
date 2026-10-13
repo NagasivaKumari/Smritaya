@@ -28,6 +28,8 @@ export default function IngestModal({ open, onClose, onRefresh, onToast }) {
   const [statusMsg, setStatusMsg] = useState('')
 
   const recognitionRef = useRef(null)
+  const baseTextRef = useRef('')
+  const finalTextRef = useRef('')
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -37,14 +39,19 @@ export default function IngestModal({ open, onClose, onRefresh, onToast }) {
     recognizer.interimResults = true
     recognizer.lang = 'en-IN'
     recognizer.onresult = (event) => {
-      let currentText = ''
+      // Commit each final segment once; show the live interim transiently so the
+      // same words are never appended twice.
+      let interim = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        currentText += event.results[i][0].transcript
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalTextRef.current = `${finalTextRef.current} ${result[0].transcript}`.trim()
+        } else {
+          interim += result[0].transcript
+        }
       }
-      setTranscript((prev) => {
-        const base = prev.trim()
-        return base ? `${base} ${currentText.trim()}` : currentText.trim()
-      })
+      const parts = [baseTextRef.current, finalTextRef.current, interim.trim()].filter(Boolean)
+      setTranscript(parts.join(' '))
     }
     recognizer.onerror = () => setIsRecording(false)
     recognizer.onend = () => setIsRecording(false)
@@ -70,6 +77,8 @@ export default function IngestModal({ open, onClose, onRefresh, onToast }) {
       setIsRecording(false)
     } else {
       try {
+        baseTextRef.current = transcript.trim()
+        finalTextRef.current = ''
         recognitionRef.current.start()
         setIsRecording(true)
         setStatusMsg('Listening to ambient speech… speak now')
