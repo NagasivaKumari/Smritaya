@@ -229,7 +229,7 @@ export default function App() {
         <>
           <header className="court-bar">
             <button className="wordmark-wrap" onClick={() => go('landing')} aria-label="Smritaya home">
-              <div className="wordmark-badge">S</div>
+              <div className="wordmark-badge"><img src="/logo.png" alt="Smritaya" /></div>
               <div>
                 <div className="wordmark">Smritaya</div>
                 <div className="wordmark-sub">the witness for the verbal economy</div>
