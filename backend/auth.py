@@ -20,7 +20,7 @@ import secrets
 import sqlite3
 import time
 
-DB = os.path.join(os.path.dirname(__file__), "auth.db")
+DB = os.environ.get("SMRITAYA_AUTH_DB", os.path.join(os.path.dirname(__file__), "auth.db"))
 
 SESSION_TTL = 30 * 24 * 3600        # 30 days
 RESET_TTL = 30 * 60                  # 30 minutes

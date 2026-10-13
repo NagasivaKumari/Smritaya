@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: smritaya
+    runtime: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app:app --host 0.0.0.0 --port $PORT"
+    plan: free
+    envVars:
+      - key: LYZR_API_KEY
+        sync: false
+      - key: LYZR_EXTRACTOR_AGENT_ID
+        sync: false
+      - key: LYZR_ADVISOR_AGENT_ID
+        sync: false
+      - key: LYZR_DRAFTER_AGENT_ID
+        sync: false
+      - key: QDRANT_PATH
+        value: /var/data/qdrant_data
+      - key: SMRITAYA_AUTH_DB
+        value: /var/data/auth.db
+    disk:
+      name: smritaya-data
+      mountPath: /var/data
