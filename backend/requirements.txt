@@ -1,0 +1,7 @@
+fastapi>=0.111
+uvicorn[standard]>=0.30
+qdrant-client>=1.10
+requests>=2.31
+# real semantic embeddings; app degrades to a deterministic fallback without it
+fastembed>=0.3
+python-dotenv>=1.0

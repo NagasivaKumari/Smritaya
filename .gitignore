@@ -1,0 +1,27 @@
+# python
+__pycache__/
+*.pyc
+.venq/
+venv/
+backend/qdrant_data/
+backend/auth.db
+
+# node
+node_modules/
+frontend/dist/
+
+# secrets
+.env
+
+# local logs
+backend/*.log
+backend/*.err
+frontend/*.log
+frontend/*.err
+
+# reference material, not source
+*.pdf
+
+# os
+.DS_Store
+Thumbs.db
