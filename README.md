@@ -300,5 +300,4 @@ processing sensitive conversations without appropriate consent.
 
 ## License
 
-No license file is currently included. Add the intended open-source license
-before distributing the project outside the hackathon.
+This project is licensed under the [MIT License](./LICENSE).
