@@ -176,14 +176,14 @@ def _omi_ok(token: str | None) -> bool:
 
 
 def _process_transcript(uid: str, text: str, source: str, speaker: str | None) -> int:
-    text = (text or "").strip()
+    text = _dedupe_stream((text or "").strip())
     if len(text) < MIN_CHARS:
         return 0
     deeds = agents.extract_deeds(text)
     for d in deeds:
         memory.record_deed(
             uid=uid,
-            text=d["quote"],
+            text=_dedupe_stream(d["quote"]),  # ponytail: extractor echoes Omi's interim repeats; collapse adjacent dupes, single chokepoint for every source
             counterparty=d["counterparty"],
             direction=d["direction"],
             amount=d["amount"],
@@ -351,7 +351,7 @@ def ingest_speech(
 
 @app.get("/health")
 def health():
-    return {"status": "sworn", "mode": _mode()}
+    return {"status": "sworn", "build": "4-dedupe-at-gate", "mode": _mode()}
 
 
 def _landing_stats(uid: str) -> list[dict]:
