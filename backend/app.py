@@ -161,7 +161,11 @@ def link_omi(omi_uid: str = Body("", embed=True), authorization: str | None = He
     if not user:
         return JSONResponse(status_code=401, content={"error": "not signed in"})
     auth.set_omi_uid(user["id"], omi_uid)
-    return {"user": auth.public_user(auth.user_for_token(_bearer(authorization)))}
+    resp: dict = {"user": auth.public_user(auth.user_for_token(_bearer(authorization)))}
+    moved = memory.remap_uid(omi_uid, user["uid"]) if omi_uid else 0
+    if moved:
+        resp["moved"] = moved
+    return resp
 
 
 # ------------------------------------------------------------------ omi
@@ -196,17 +200,24 @@ def _process_transcript(uid: str, text: str, source: str, speaker: str | None) -
 def _conversation_text(payload: Any) -> tuple[str, str | None]:
     """Pull the spoken words out of any shape Omi's memory webhook sends."""
     transcript, speaker = "", None
-    if isinstance(payload, dict):
-        segments = payload.get("segments") or payload.get("transcript_segments") or []
+    if isinstance(payload, list):
+        transcript = " ".join(s.get("text", "") for s in payload if isinstance(s, dict))
+        speaker = next((s.get("speaker") for s in payload if isinstance(s, dict) and s.get("speaker")), None)
+    elif isinstance(payload, dict):
+        node = payload
+        for wrap in ("memory", "conversation"):
+            if isinstance(node.get(wrap), dict):
+                node = node[wrap]
+        segments = node.get("segments") or node.get("transcript_segments") or []
         if isinstance(segments, list) and segments:
             transcript = " ".join(s.get("text", "") for s in segments if isinstance(s, dict))
             speaker = next((s.get("speaker") for s in segments if isinstance(s, dict) and s.get("speaker")), None)
         if not transcript:
-            structured = payload.get("structured")
+            structured = node.get("structured") or payload.get("structured")
             if isinstance(structured, dict) and structured.get("overview"):
                 transcript = str(structured["overview"])
-        if not transcript and isinstance(payload.get("transcript"), str):
-            transcript = payload["transcript"]
+        if not transcript and isinstance(node.get("transcript"), str):
+            transcript = node["transcript"]
         if not transcript and isinstance(payload.get("text"), str):
             transcript = payload["text"]
     elif isinstance(payload, str):
@@ -221,6 +232,7 @@ def on_conversation(tasks: BackgroundTasks, uid: str = Query(DEMO_UID), token: s
         return JSONResponse(status_code=403, content={"error": "forbidden"})
     uid = _ledger_uid(uid)
     transcript, speaker = _conversation_text(payload)
+    print(f"[omi] conversation uid={uid!r} keys={list(payload) if isinstance(payload, dict) else type(payload).__name__} len={len(transcript)} text={transcript[:160]!r}")
 
     tasks.add_task(_process_transcript, uid, transcript, "conversation", speaker)
     return {"status": "ok", "message": "Transcript queued for Lyzr deed extraction & Qdrant storage"}
@@ -259,8 +271,13 @@ def on_realtime(tasks: BackgroundTasks, uid: str = Query(DEMO_UID), session_id: 
 
     # Buffer per session and answer once the speaker pauses — no timer, no partial deeds.
     session = session_id or uid
+    print(f"[omi] realtime uid={uid!r} session={session!r} nonzero_pieces={sum(1 for s in (payload if isinstance(payload, list) else (payload.get('segments') or payload.get('transcript_segments') or []) if isinstance(payload, dict) else []) if isinstance(s, dict) and s.get('text'))} len={len(transcript)} text={transcript[:160]!r}")
+    # Omi's real-time webhook resends the FULL accumulated transcript on every burst, so
+    # we replace (never append) and only ever keep the latest cumulative text — otherwise
+    # the same words stack up ("Ramesh Ramesh ward Ramesh wardro ...").
+    session = session_id or uid
     with _buf_lock:
-        _buffers.setdefault(session, []).append(transcript)
+        _buffers[session] = [transcript]
         old = _timers.get(session)
         if old:
             old.cancel()

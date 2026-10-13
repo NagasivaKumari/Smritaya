@@ -95,3 +95,17 @@ assert app._conversation_text({"nothing": 1}) == ("", None)
 
 print("ok omi-parse: segments / structured.overview / transcript / text")
 
+
+# 7) real-time webhook resends the cumulative transcript each burst: replace, never append
+app.OMI_SECRET = ""
+app.on_realtime(app.BackgroundTasks(), uid="u", session_id="s1", payload=[{"text": "Ramesh"}])
+app.on_realtime(app.BackgroundTasks(), uid="u", session_id="s1", payload=[{"text": "Ramesh wardrobe"}, {"text": "by Sunday"}])
+with app._buf_lock:
+    assert app._buffers["s1"] == ["Ramesh wardrobe by Sunday"], app._buffers["s1"]
+    if app._timers.get("s1"):
+        app._timers["s1"].cancel()
+    app._buffers.pop("s1", None)
+    app._timers.pop("s1", None)
+
+print("ok omi-realtime: cumulative replace, no duplicate stack")
+

@@ -35,7 +35,8 @@ export default function Ledger({ deeds, copy, deedCopy, onOpenChamber, onRemind,
       (d) =>
         d.counterparty.toLowerCase().includes(q) ||
         d.text.toLowerCase().includes(q) ||
-        (d.topic && d.topic.toLowerCase().includes(q))
+        (d.topic && d.topic.toLowerCase().includes(q)) ||
+        (d.amount != null && String(d.amount).includes(q))
     )
   }, [filteredByStatus, search])
 

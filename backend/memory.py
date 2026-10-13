@@ -227,6 +227,30 @@ def strike(point_id: str | None = None, counterparty: str | None = None, uid: st
     return max(before - after, 0)
 
 
+def remap_uid(old_uid: str, new_uid: str) -> int:
+    """Move every stored deed from one uid to another — used when a user links
+    their Omi id so previously-recorded conversations land in the account."""
+    from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+    qdrant = _client()
+    if not old_uid or old_uid == new_uid:
+        return 0
+    try:
+        hits = qdrant.scroll(
+            COLLECTION,
+            scroll_filter=Filter(must=[FieldCondition(key="uid", match=MatchValue(value=old_uid))]),
+            limit=10000,
+            with_payload=False,
+        )[0]
+    except Exception:
+        return 0
+    ids = [p.id for p in hits]
+    if not ids:
+        return 0
+    qdrant.set_payload(COLLECTION, payload={"uid": new_uid}, points=ids)
+    return len(ids)
+
+
 # -------------------------------------------------------------------- reads
 
 def _overdue(payload: dict) -> bool:
