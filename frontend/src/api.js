@@ -1,4 +1,4 @@
-const API = '/api'
+const API = import.meta.env.VITE_API_BASE || '/api'
 const DEFAULT_UID = 'founder'
 const TOKEN_KEY = 'smritaya:token'
 
