@@ -251,6 +251,7 @@ def on_conversation(tasks: BackgroundTasks, uid: str = Query(DEMO_UID), token: s
     if drafts:
         print(f"[omi] removed {drafts} provisional realtime draft deed(s) before storing the conversation deed")
     transcript, speaker = _conversation_text(payload)
+    transcript = _dedupe_stream(transcript)  # ponytail: Omi final text also repeats interim fragments; adjacent-dup collapse, upgrade to diff-based merge if needed
     print(f"[omi] conversation uid={uid!r} keys={list(payload) if isinstance(payload, dict) else type(payload).__name__} len={len(transcript)} text={transcript[:160]!r}")
 
     tasks.add_task(_process_transcript, uid, transcript, "conversation", speaker)
